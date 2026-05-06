@@ -1,0 +1,19 @@
+{
+  "name": "circle-push-web-sample",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "predev": "node ./scripts/copy-sw.mjs",
+    "dev": "vite",
+    "prebuild": "node ./scripts/copy-sw.mjs",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@circlehq/push-web": "^1.0.1"
+  },
+  "devDependencies": {
+    "vite": "^5.2.0"
+  }
+}

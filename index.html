@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Circle Push — Sample</title>
+    <style>
+      :root { color-scheme: light dark; font-family: ui-sans-serif, system-ui, sans-serif; }
+      body { max-width: 760px; margin: 2rem auto; padding: 0 1rem; }
+      h1 { margin: 0 0 1rem; }
+      .row { display: flex; gap: .5rem; flex-wrap: wrap; margin: .5rem 0 1rem; }
+      button {
+        padding: .55rem 1rem; border: 1px solid #888; border-radius: .375rem;
+        background: #f7f7f7; cursor: pointer; font: inherit;
+      }
+      button:hover { background: #ececec; }
+      button:disabled { opacity: .5; cursor: not-allowed; }
+      button.secondary { background: transparent; }
+      input, textarea {
+        width: 100%; padding: .5rem; border: 1px solid #888; border-radius: .375rem;
+        font: inherit; box-sizing: border-box;
+      }
+      textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+      label { display: block; margin: .5rem 0 .25rem; font-weight: 600; }
+      .panel {
+        background: #f4f4f4; border: 1px solid #ddd; padding: .75rem; border-radius: .5rem;
+        margin: 1rem 0;
+      }
+      .panel.error { background: #fde7e7; border-color: #f5b5b5; color: #7a1f1f; }
+      .grid { display: grid; grid-template-columns: max-content 1fr; gap: .25rem 1rem; }
+      .grid b { color: #555; }
+      pre {
+        background: #111; color: #eee; padding: .75rem; border-radius: .5rem;
+        max-height: 320px; overflow: auto; font-size: 12px;
+      }
+      details > summary { cursor: pointer; margin: 1rem 0 .5rem; }
+      .muted { color: #666; font-size: .9rem; }
+      code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em; }
+      @media (prefers-color-scheme: dark) {
+        button { background: #222; color: #eee; border-color: #555; }
+        button:hover { background: #333; }
+        button.secondary { background: transparent; }
+        .panel { background: #1a1a1a; border-color: #333; }
+        .panel.error { background: #3a1414; border-color: #6a2424; color: #f5b5b5; }
+        input, textarea { background: #1a1a1a; color: #eee; border-color: #555; }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Circle Push — Sample</h1>
+    <p class="muted">
+      A minimal example of integrating <code>@circlehq/push-web</code>. The SDK is
+      initialized on page load from values in <code>.env.local</code>. Sign in
+      with an email or phone to register this device for push.
+    </p>
+
+    <div id="config-error" class="panel error" hidden></div>
+
+    <div class="panel">
+      <label>Sign in</label>
+      <p class="muted">
+        Identify the current user. In a real app you'd call this after your
+        own login flow completes.
+      </p>
+      <div class="row">
+        <input id="email" type="email" placeholder="user@example.com" autocomplete="email" />
+        <input id="phone" type="tel" placeholder="+1 555 123 4567" autocomplete="tel" />
+      </div>
+      <div class="row">
+        <button id="btn-identify">Sign in &amp; enable notifications</button>
+        <button id="btn-unregister" class="secondary">Disable notifications</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="grid">
+        <b>SDK version</b><span id="s-version">—</span>
+        <b>Permission</b><span id="s-permission">—</span>
+        <b>Push token</b><span id="s-token">—</span>
+        <b>Device ID</b><span id="s-device">—</span>
+        <b>Contact ID</b><span id="s-contact">—</span>
+      </div>
+    </div>
+
+    <details>
+      <summary class="muted">Event log</summary>
+      <pre id="log"></pre>
+    </details>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
