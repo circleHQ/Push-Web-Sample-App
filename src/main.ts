@@ -27,7 +27,7 @@ function readConfig(): CirclePushConfig {
   const apiKey = import.meta.env.VITE_CIRCLE_API_KEY?.trim();
   if (!apiKey) {
     throw new Error(
-      'Missing VITE_CIRCLE_API_KEY. Copy .env.example to .env.local and fill it in.',
+      'Missing VITE_CIRCLE_API_KEY. Create .env.local and set VITE_CIRCLE_API_KEY=your_key.',
     );
   }
   return {

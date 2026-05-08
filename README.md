@@ -1,89 +1,174 @@
-# Circle Push — Web Sample
+# Circle Push — Web SDK Integration Guide
 
-A minimal Vite + TypeScript example showing how to integrate
-[`@circlehq/push-web`](https://www.npmjs.com/package/@circlehq/push-web) into a
-website to send push notifications via the Circle platform.
+How to add web push notifications to your **Vite + React** app using
+[`@circlehq/push-web`](https://www.npmjs.com/package/@circlehq/push-web).
 
-The flow mirrors a real integration:
+> This repo is a working sample. The steps below show the same integration
+> applied to your own Vite + React project. To run the sample itself, jump
+> to [Running this sample](#running-this-sample) at the bottom.
 
-1. The SDK is initialized **on page load** from environment variables.
-2. After the user signs in, the app calls `identify()` to register the
-   browser as a push device against that contact.
-3. Notifications sent from the Circle dashboard appear via the OS, and
-   click events are forwarded back to the page.
+---
 
 ## Prerequisites
 
 - Node.js 18+
-- A Circle account with an **API key**
+- A Circle account with a publishable **API key**
+- A Vite + React app (TypeScript or JS)
 
-That's it — the Firebase config and VAPID key are baked into the SDK by
-Circle, so you don't need to manage them yourself.
+Web Push requires HTTPS or `localhost`. The Vite dev server qualifies.
 
-## Setup
+## 1. Install
 
 ```bash
-npm install
-cp .env.example .env.local
-# edit .env.local: set VITE_CIRCLE_API_KEY
-npm run dev
+npm install @circlehq/push-web
 ```
 
-Open http://localhost:5173, enter an email or phone number, and click
-**Sign in & enable notifications**. Your browser will prompt for
-notification permission; after you accept, the device is registered
-against the contact identified by that email or phone.
+The SDK auto-installs its service worker into your project's `public/`
+folder. If your install ran with `--ignore-scripts`, run it manually once:
 
-To test, send a push from the Circle dashboard (or your backend) targeted
-at the same email/phone. The browser will display the notification, and
-clicking it will be logged in the **Event log** panel.
+```bash
+npx circle-push install-sw
+```
 
-## Environment variables
+## 2. Add your API key
 
-The variable is read at build time by Vite and embedded in the bundle, so
-only ship values that are safe in a browser.
+Create `.env.local` in your project root:
 
-| Variable | Description |
-| --- | --- |
-| `VITE_CIRCLE_API_KEY` | Your Circle publishable API key. |
+```
+VITE_CIRCLE_API_KEY=your_publishable_api_key
+```
 
-## How the service worker is wired
+## 3. Initialize the SDK on app load
 
-Web Push requires a service worker served from the site root at
-`/firebase-messaging-sw.js`. The `predev` and `prebuild` scripts copy
-the SDK's prebuilt service worker out of `node_modules/@circlehq/push-web`
-into `public/`, where Vite serves it automatically.
+In your root component (e.g. `src/App.tsx`), call `init()` once. It's
+idempotent, so calling it more than once is safe.
 
-You don't need to edit or write a service worker yourself — the SDK ships
-with one that handles background message rendering and click forwarding.
+```tsx
+import { useEffect } from 'react';
+import CirclePush from '@circlehq/push-web';
+
+export default function App() {
+  useEffect(() => {
+    CirclePush.init({
+      apiKey: import.meta.env.VITE_CIRCLE_API_KEY,
+    }).catch(console.error);
+  }, []);
+
+  return <YourApp />;
+}
+```
+
+## 4. Identify a user after sign-in
+
+Once your user authenticates, call `identify()` to register the browser as
+a push device against that contact:
+
+```tsx
+import CirclePush from '@circlehq/push-web';
+
+async function enablePush(email: string) {
+  const permission = await CirclePush.requestPermission();
+  if (permission !== 'granted') return;
+
+  const device = await CirclePush.identify({ email });
+  console.log('Push enabled', device);
+}
+```
+
+You can identify by `email`, `phone`, or both:
+
+```ts
+await CirclePush.identify({ email: 'user@example.com' });
+await CirclePush.identify({ phone: '+15551234567' });
+```
+
+## 5. Handle notification events (optional)
+
+Subscribe to events anywhere in your app. Always clean up listeners in
+the `useEffect` return:
+
+```tsx
+import { useEffect } from 'react';
+import CirclePush from '@circlehq/push-web';
+
+export function PushListener() {
+  useEffect(() => {
+    const onReceived = (p: unknown) => console.log('received', p);
+    const onClicked  = (p: unknown) => console.log('clicked', p);
+
+    CirclePush.on('notificationReceived', onReceived);
+    CirclePush.on('notificationClicked',  onClicked);
+
+    return () => {
+      CirclePush.off('notificationReceived', onReceived);
+      CirclePush.off('notificationClicked',  onClicked);
+    };
+  }, []);
+
+  return null;
+}
+```
+
+## 6. Disable push on sign-out
+
+```ts
+await CirclePush.unregister();
+```
+
+This unregisters the device and clears local state.
+
+---
+
+## Test it
+
+1. Run your app on `http://localhost:5173` (or any HTTPS origin).
+2. Sign a user in and call `identify()`.
+3. Send a push from the Circle dashboard targeting that email/phone.
+4. The OS notification appears; clicking it fires `notificationClicked`.
+
+## API reference
+
+| Method | Description |
+|---|---|
+| `CirclePush.init(config)` | Initialize the SDK. Call once on app load. |
+| `CirclePush.identify({ email?, phone? })` | Register the browser as a push device for this contact. |
+| `CirclePush.requestPermission()` | Prompt the browser for notification permission. |
+| `CirclePush.unregister()` | Disable push for this device. |
+| `CirclePush.getToken()` | Current FCM token, or `null`. |
+| `CirclePush.getPermissionState()` | `'granted' \| 'denied' \| 'default'`. |
+| `CirclePush.on(event, handler)` / `off(event, handler)` | Subscribe / unsubscribe. |
+
+**Events:** `permissionChange`, `tokenRefresh`, `notificationReceived`,
+`notificationClicked`, `error`.
 
 ## Browser support
 
-- **Chrome, Edge, Firefox, Opera (desktop & Android)**: fully supported.
-- **Safari macOS 16.4+**: supported.
-- **Safari iOS 16.4+**: supported **only** when the site has been
-  installed to the Home Screen as a PWA.
+| Browser | Supported |
+|---|---|
+| Chrome, Edge, Firefox, Opera (desktop & Android) | ✅ |
+| Safari macOS 16.4+ | ✅ |
+| Safari iOS 16.4+ | ✅ when installed as a PWA (Add to Home Screen) |
 
-Web Push requires a secure context (HTTPS or `localhost`). The Vite dev
-server on `127.0.0.1:5173` qualifies.
+---
 
-## Project layout
+## Running this sample
 
+```bash
+git clone <this repo>
+cd circle-push-web-sample
+npm install
+echo "VITE_CIRCLE_API_KEY=your_key" > .env.local
+npm run dev
 ```
-.
-├── index.html              UI markup
-├── src/
-│   ├── main.ts             SDK init + sign-in flow
-│   └── env.d.ts            Vite env typings
-├── scripts/
-│   └── copy-sw.mjs         Copies the SDK service worker into public/
-├── .env.example            Template for .env.local
-├── package.json
-├── tsconfig.json
-└── vite.config.ts
-```
+
+Open http://localhost:5173, enter an email or phone, and click
+**Sign in & enable notifications**. Send a push from the Circle dashboard
+to see it arrive.
+
+The full integration code lives in [src/main.ts](src/main.ts).
 
 ## Learn more
 
-- [`@circlehq/push-web` documentation](https://docs.circlehq.co/push/web)
+- [`@circlehq/push-web` on npm](https://www.npmjs.com/package/@circlehq/push-web)
+- [Circle Push docs](https://docs.circlehq.co/push/web)
 - [Circle dashboard](https://app.circlehq.co)

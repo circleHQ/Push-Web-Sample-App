@@ -3,7 +3,4 @@ dist/
 .vite/
 public/firebase-messaging-sw.js
 *.log
-.env
 .env.local
-.env.*.local
-.DS_Store
